@@ -1,7 +1,7 @@
 # ============================================================================
 # STAGE 1: BUILDER
 # ============================================================================
-FROM rust:1.82-bookworm AS builder
+FROM rust:bookworm AS builder
 WORKDIR /app
 
 COPY Cargo.toml ./
