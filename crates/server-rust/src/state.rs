@@ -168,7 +168,8 @@ impl AppState {
         now_sec: i64,
         incoming: &[ServiceCheckPayload],
     ) -> Option<(u64, String, Vec<CachedServiceState>, Vec<AlertEvent>)> {
-        let mut host_entry = self.hosts_cache.get_mut(host_uuid)?;
+        let mut host_ref = self.hosts_cache.get_mut(host_uuid)?;
+        let host_entry = host_ref.value_mut();
         host_entry.hostname = hostname.to_string();
         host_entry.ip_address = ip_address.to_string();
         host_entry.last_seen_epoch = now_sec;
