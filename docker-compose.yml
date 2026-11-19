@@ -1,0 +1,54 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: cmk-enterprise-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-ChangeMeRootPass!}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-cmk_enterprise}
+      MARIADB_USER: ${MARIADB_USER:-cmkmonitor}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-ChangeMeStrongDbPass!}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=512M
+      - --innodb-flush-log-at-trx-commit=2
+      - --max-connections=200
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./migrations/0001_initial_schema.sql:/docker-entrypoint-initdb.d/0001_initial_schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server-rust:
+    build:
+      context: .
+      dockerfile: crates/server-rust/Dockerfile
+    container_name: cmk-enterprise-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./dist/agents:/app/downloads:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cmk-enterprise-frontend
+    restart: unless-stopped
+    depends_on:
+      - server-rust
+    ports:
+      - "3000:80"
+
+volumes:
+  mariadb_data:
